@@ -20,6 +20,7 @@ Minecraft InTernet Projekt
  <rect <id>="idForStyling" <x>="1" <y>="1" width="5" height="5" />
 </body>
 ```
+You **MUST** give styling to body.
 # MCJS Syntax Guide
 
 ```js
