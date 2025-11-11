@@ -86,10 +86,19 @@ for (k = 1; 5) {
 ```
 ---
 
-🧩 How to Integrate
+# 🧩 How to Integrate
 
-Add this inside your HTML <head>:
-
+Add this inside your MCML <head>:
+```html
 <script>
 // Your code here
 </script>
+```
+
+# Code Editor supports
+Most code editor will highlight and support my cursed syntax, if anyone makes a NPP or VSCode extension to support it feel free to contact me on discord @noah05diard and i'll add it here
+Supported Extensions:
+- None :(
+
+**For more information about other elements, like router, dns server, webserver, client find their own pages in the folder : docs**
+When im on PC and upload them...
