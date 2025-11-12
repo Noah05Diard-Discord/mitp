@@ -18,6 +18,8 @@ Minecraft InTernet Projekt
  <button <id>="idForStyling" web="example.com" page="index" <x>="1" <y>="1">Yeah a button</button>
  <newLine>
  <rect <id>="idForStyling" <x>="1" <y>="1" width="5" height="5" />
+ <newLine>
+ <textbox <id>="idForMCJSAndStyling" <x>="1" <y>="1" width="5"  height="3" />
 </body>
 ```
 You **MUST** give styling to body.
@@ -29,14 +31,15 @@ var elem = get("elementId")
 // Here are the different methods for that object
 elem.bgColor = "red"      // Sets the BG Color to red
 elem.textColor = "white"  // Sets the TEXT Color to white
-elem.width = "5"          // Sets the width to 5 pixels (ONLY WORKS WITH RECT)
-elem.height = "5"         // Sets the height to 5 pixels (ONLY WORKS WITH RECT)
+elem.width = "5"          // Sets the width to 5 pixels (ONLY WORKS WITH RECT AND TEXTBOX)
+elem.height = "5"         // Sets the height to 5 pixels (ONLY WORKS WITH RECT AND TEXTBOX)
 elem.x = "1"              // Sets the X pos to 1
 elem.y = "1"              // Sets the Y pos to 1
 elem.text = "Hello, world!" // Sets the text to that, works with buttons and text elements only
 elem.web = "example.com"  // Sets the dest website, only works with buttons
 elem.page = "index"       // Sets the dest page, only works with buttons
-
+var(elem.content) // Returns the element content, ONLY WORKS WITH TEXTBOX
+elem.setContent("Content goes here, you can use var() too")
 // Now events!
 // You can hook into button clicks — set the web tag to "#" and page to "#" to use MCJS on it!
 // Here is the ONLY VALID SYNTAX!
