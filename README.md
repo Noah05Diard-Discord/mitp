@@ -19,7 +19,7 @@ Minecraft InTernet Projekt
  <newLine>
  <rect <id>="idForStyling" <x>="1" <y>="1" width="5" height="5" />
  <newLine>
- <textbox <id>="idForMCJSAndStyling" <x>="1" <y>="1" width="5"  height="3" />
+ <textbox <id>="idForStyling" <x>="1" <y>="1" width="5" />
 </body>
 ```
 You **MUST** give styling to body.
@@ -49,7 +49,7 @@ Read the environment:
     else
         print("Script load error: " .. tostring(err))
     end
-    ```
+```
 # 🧩 How to Integrate
 
 Add this inside your MCML <head>:
