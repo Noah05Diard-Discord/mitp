@@ -24,72 +24,32 @@ Minecraft InTernet Projekt
 ```
 You **MUST** give styling to body.
 # MCJS Syntax Guide
-
-```js
-var elem = get("elementId")
-
-// Here are the different methods for that object
-elem.bgColor = "red"      // Sets the BG Color to red
-elem.textColor = "white"  // Sets the TEXT Color to white
-elem.width = "5"          // Sets the width to 5 pixels (ONLY WORKS WITH RECT AND TEXTBOX)
-elem.height = "5"         // Sets the height to 5 pixels (ONLY WORKS WITH RECT AND TEXTBOX)
-elem.x = "1"              // Sets the X pos to 1
-elem.y = "1"              // Sets the Y pos to 1
-elem.text = "Hello, world!" // Sets the text to that, works with buttons and text elements only
-elem.web = "example.com"  // Sets the dest website, only works with buttons
-elem.page = "index"       // Sets the dest page, only works with buttons
-var(elem.content) // Returns the element content, ONLY WORKS WITH TEXTBOX
-elem.setContent("Content goes here, you can use var() too")
-// Now events!
-// You can hook into button clicks — set the web tag to "#" and page to "#" to use MCJS on it!
-// Here is the ONLY VALID SYNTAX!
-
-codeblock buttonClicked() {
-  // Here put your code
-}
-hook("click", "buttonId", "buttonClicked")
-
-// Now you can do other stuff like waits
-wait(5) // Waits 5 seconds
-
-// Or other things
-redirect("example.com", "index") // Redirects
-
-// You can define variables to use them everywhere
-var test = "Hey"
-elem.text = var("test")
-
-// And almost forgot, MATH
-var calc = "5 + 5"
-var calced = eval(var("calc"))
-elem.text = var("calced")
-
-// Also! COOKIES
-var cookie = getCookie("cookieName")
-setCookie("cookieName", var(calced))
-var cexist = cookieExist("iDontExist")
-
-// If statements
-if (cexist == true) {
-  // do stuff
-} elseif (cexist == var(calc)) {
-  // do other stuff
-} else {
-  // do stuff
-}
-
-// For loops
-for (k = 1; 5) {
-  // Counts from 1 to 5
-  // Do stuff — you have the var k here only
-  elem.text = var("k")
-}
-
-// THAS ALL FOR NOW!
-
-```
----
-
+```lua
+Read the environment:
+-- Create safe environment
+    local env = {
+        elements = pageEnv.elements,
+        setCookie = pageEnv.setCookie,
+        getCookie = pageEnv.getCookie,
+        cookieExist = pageEnv.cookieExist,
+        redirect = pageEnv.redirect,
+        wait = pageEnv.wait,
+        print = print,
+        sleep = sleep
+    }
+    
+    setmetatable(env, {__index = _G})
+    
+    local func, err = load(script, "page_script", "t", env)
+    if func then
+        local success, result = pcall(func)
+        if not success then
+            print("Script error: " .. tostring(result))
+        end
+    else
+        print("Script load error: " .. tostring(err))
+    end
+    ```
 # 🧩 How to Integrate
 
 Add this inside your MCML <head>:
