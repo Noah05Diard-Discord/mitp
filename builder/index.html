@@ -1,0 +1,1059 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCML UI Builder — Drag & Drop</title>
+<link rel="stylesheet" href="https://unpkg.com/@interactjs/actions/resize/resize.css">
+<style>
+:root {
+  --bg: #0b0c0d;
+  --panel: #0f1214;
+  --muted: #8b9498;
+  --accent: #4cc3ff;
+  --card: #111316;
+  --border: #1f2426;
+  --text: #e6eef3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 300px 1fr 320px;
+  height: 100vh;
+  gap: 12px;
+  padding: 14px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 14px;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.palette .title {
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.palette-item {
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  border-radius: 6px;
+  margin: 8px 0;
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+}
+
+.palette-item:active {
+  cursor: grabbing;
+}
+
+.canvas-wrap {
+  position: relative;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: #0b0c0d;
+}
+
+#canvas {
+  position: relative;
+  width: 765px;
+  height: 435px;
+}
+
+.canvas-grid {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(51, 15px);
+  grid-template-rows: repeat(29, 15px);
+  pointer-events: none;
+}
+
+.canvas-grid div {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mcml-node {
+  position: absolute;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  min-width: 15px;
+  min-height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: grab;
+  z-index: 10;
+  user-select: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  white-space: pre;
+  touch-action: none;
+}
+
+.mcml-node:active {
+  cursor: grabbing;
+}
+
+.mcml-node.selected {
+  outline: 2px solid var(--accent);
+  box-shadow: 0 6px 20px rgba(76, 195, 255, 0.08);
+}
+
+/* Resize handle styles */
+.resize-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border-radius: 2px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 20;
+  border: 2px solid var(--panel);
+}
+
+.resize-handle[data-resize="bottom-right"] {
+  bottom: -8px;
+  right: -8px;
+}
+
+.mcml-node.selected .resize-handle {
+  opacity: 1;
+}
+
+.resize-handle:hover {
+  opacity: 1 !important;
+  background: #7fd9ff;
+  transform: scale(1.1);
+}
+
+.inspector h3 {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 8px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+input, select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #0b0d0e;
+  color: var(--text);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.btn {
+  background: var(--accent);
+  border: 0;
+  color: #000;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+pre {
+  background: #071014;
+  padding: 12px;
+  border-radius: 6px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: var(--text);
+  font-size: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 12px 0;
+}
+
+/* CC:Tweaked Color Previews */
+.color-preview {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  vertical-align: middle;
+}
+
+/* CC:Tweaked Color Definitions */
+.color-white { background: #F0F0F0; }
+.color-orange { background: #F2B233; }
+.color-magenta { background: #E57FD8; }
+.color-lightBlue { background: #99B2F2; }
+.color-yellow { background: #DEDE6C; }
+.color-lime { background: #7FCC19; }
+.color-pink { background: #F2B2CC; }
+.color-gray { background: #4C4C4C; }
+.color-lightGray { background: #999999; }
+.color-cyan { background: #4C99B2; }
+.color-purple { background: #B266E5; }
+.color-blue { background: #3366CC; }
+.color-brown { background: #7F664C; }
+.color-green { background: #57A64E; }
+.color-red { background: #CC4C4C; }
+.color-black { background: #1E1E1E; }
+
+/* Color preview for select options */
+.color-option {
+  padding: 8px 12px;
+}
+
+/* Inspector specific styles */
+.inspector-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.inspector-row > div {
+  flex: 1;
+}
+
+.dimensions {
+  display: flex;
+  gap: 8px;
+}
+
+.dimensions input {
+  text-align: center;
+}
+
+/* Web/Page fields container */
+.web-fields {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.web-fields h4 {
+  margin: 0 0 8px 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+</style>
+</head>
+<body id="body">
+<div class="app">
+  <div class="panel palette">
+    <div class="title">Palette</div>
+    <div class="muted">Drag items to the canvas</div>
+    <div id="paletteList">
+      <div class="palette-item" data-type="text">Text</div>
+      <div class="palette-item" data-type="button">Button</div>
+      <div class="palette-item" data-type="rect">Rect</div>
+      <div class="palette-item" data-type="textbox">Textbox</div>
+      <div class="palette-item" data-type="newLine">New Line</div>
+    </div>
+    <hr>
+    <div class="muted">Allowed colors (CC:Tweaked)</div>
+    <select id="globalColorList" style="margin-top:8px">
+      <option value="">— choose —</option>
+      <option value="white">white</option>
+      <option value="orange">orange</option>
+      <option value="magenta">magenta</option>
+      <option value="lightBlue">lightBlue</option>
+      <option value="yellow">yellow</option>
+      <option value="lime">lime</option>
+      <option value="pink">pink</option>
+      <option value="gray">gray</option>
+      <option value="lightGray">lightGray</option>
+      <option value="cyan">cyan</option>
+      <option value="purple">purple</option>
+      <option value="blue">blue</option>
+      <option value="brown">brown</option>
+      <option value="green">green</option>
+      <option value="red">red</option>
+      <option value="black">black</option>
+    </select>
+    <div style="margin-top:12px">
+      <button id="exportBtn" class="btn">Export MCML</button>
+      <button id="clearBtn" class="btn ghost">Clear Canvas</button>
+    </div>
+    <hr>
+    <div class="title">Page Editor</div>
+    <label>Page Title</label>
+    <input id="pageTitle" placeholder="Untitled" value="Untitled">
+    <label>Page Description</label>
+    <input id="pageDesc" placeholder="Description">
+    <label>Body Text Color</label>
+    <select id="bodyTextColor">
+      <option value="">none</option>
+      <option value="white">white</option>
+      <option value="orange">orange</option>
+      <option value="magenta">magenta</option>
+      <option value="lightBlue">lightBlue</option>
+      <option value="yellow">yellow</option>
+      <option value="lime">lime</option>
+      <option value="pink">pink</option>
+      <option value="gray">gray</option>
+      <option value="lightGray">lightGray</option>
+      <option value="cyan">cyan</option>
+      <option value="purple">purple</option>
+      <option value="blue">blue</option>
+      <option value="brown">brown</option>
+      <option value="green">green</option>
+      <option value="red">red</option>
+      <option value="black">black</option>
+    </select>
+    <label>Body Background Color</label>
+    <select id="bodyBgColor">
+      <option value="">none</option>
+      <option value="white">white</option>
+      <option value="orange">orange</option>
+      <option value="magenta">magenta</option>
+      <option value="lightBlue">lightBlue</option>
+      <option value="yellow">yellow</option>
+      <option value="lime">lime</option>
+      <option value="pink">pink</option>
+      <option value="gray">gray</option>
+      <option value="lightGray">lightGray</option>
+      <option value="cyan">cyan</option>
+      <option value="purple">purple</option>
+      <option value="blue">blue</option>
+      <option value="brown">brown</option>
+      <option value="green">green</option>
+      <option value="red">red</option>
+      <option value="black">black</option>
+    </select>
+  </div>
+
+  <div class="panel canvas-wrap">
+    <div id="canvas">
+      <div class="canvas-grid" id="canvasGrid"></div>
+    </div>
+  </div>
+
+  <div class="panel inspector">
+    <h3>Inspector</h3>
+    <div class="muted" id="ins-info">Select an element on the canvas</div>
+    <label>ID</label>
+    <input id="ins-id" placeholder="optional">
+    <div class="row">
+      <div style="flex:1">
+        <label>X</label>
+        <input id="ins-x" type="number" min="0" max="50">
+      </div>
+      <div style="flex:1">
+        <label>Y</label>
+        <input id="ins-y" type="number" min="0" max="28">
+      </div>
+    </div>
+    <div class="dimensions" id="dimensions-container" style="display: none;">
+      <div style="flex:1">
+        <label>Width</label>
+        <input id="ins-width" type="number" min="1" max="50">
+      </div>
+      <div style="flex:1">
+        <label>Height</label>
+        <input id="ins-height" type="number" min="1" max="28">
+      </div>
+    </div>
+    <label>Text</label>
+    <input id="ins-text">
+    
+    <!-- Web/Page Fields (shown for buttons and textboxes) -->
+    <div id="web-fields-container" style="display: none;">
+      <div class="web-fields">
+        <h4>Navigation</h4>
+        <label>Web Target</label>
+        <input id="ins-web" placeholder="https://example.com">
+        <label>Page Target</label>
+        <input id="ins-page" placeholder="page_name">
+      </div>
+    </div>
+    
+    <label>Text Color</label>
+    <select id="ins-textColor"></select>
+    <label>Background Color</label>
+    <select id="ins-bgColor"></select>
+    <div class="actions">
+      <button id="applyBtn" class="btn">Apply</button>
+      <button id="deleteBtn" class="btn ghost">Delete</button>
+    </div>
+    <hr>
+    <div class="muted">Generated MCML</div>
+    <pre id="out">&lt;head&gt;
+  &lt;title&gt;Untitled&lt;/title&gt;
+  &lt;description&gt;&lt;/description&gt;
+&lt;/head&gt;
+&lt;body id="body"&gt;
+
+&lt;/body&gt;</pre>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+<script>
+// DOM elements
+const canvas = document.getElementById('canvas');
+const canvasGrid = document.getElementById('canvasGrid');
+const paletteList = document.getElementById('paletteList');
+const out = document.getElementById('out');
+const pageTitle = document.getElementById('pageTitle');
+const pageDesc = document.getElementById('pageDesc');
+const bodyTextColor = document.getElementById('bodyTextColor');
+const bodyBgColor = document.getElementById('bodyBgColor');
+const dimensionsContainer = document.getElementById('dimensions-container');
+const webFieldsContainer = document.getElementById('web-fields-container');
+const ins = {
+  id: document.getElementById('ins-id'),
+  x: document.getElementById('ins-x'),
+  y: document.getElementById('ins-y'),
+  width: document.getElementById('ins-width'),
+  height: document.getElementById('ins-height'),
+  text: document.getElementById('ins-text'),
+  web: document.getElementById('ins-web'),
+  page: document.getElementById('ins-page'),
+  textColor: document.getElementById('ins-textColor'),
+  bgColor: document.getElementById('ins-bgColor'),
+  info: document.getElementById('ins-info')
+};
+
+// Constants
+const COLORS = [
+  'white', 'orange', 'magenta', 'lightBlue', 'yellow', 'lime', 
+  'pink', 'gray', 'lightGray', 'cyan', 'purple', 'blue', 
+  'brown', 'green', 'red', 'black'
+];
+const GRID_WIDTH = 51;
+const GRID_HEIGHT = 29;
+const CELL_SIZE = 15;
+
+// State
+let nodes = [];
+let selectedNode = null;
+let uid = 0;
+
+// Initialize the grid
+function initGrid() {
+  let gridHTML = '';
+  for (let i = 0; i < GRID_WIDTH * GRID_HEIGHT; i++) {
+    gridHTML += '<div></div>';
+  }
+  canvasGrid.innerHTML = gridHTML;
+}
+
+// Create color option with preview
+function createColorOption(color) {
+  const option = document.createElement('option');
+  option.value = color;
+  option.innerHTML = `<span class="color-preview color-${color}"></span>${color}`;
+  option.className = 'color-option';
+  return option;
+}
+
+// Populate color dropdowns with previews
+function populateColorSelect(sel) {
+  sel.innerHTML = '';
+  const noneOption = document.createElement('option');
+  noneOption.value = '';
+  noneOption.textContent = 'none';
+  sel.appendChild(noneOption);
+  
+  COLORS.forEach(color => {
+    sel.appendChild(createColorOption(color));
+  });
+}
+
+// Make an element draggable and resizable
+function setupInteractions(element, node) {
+  // Dragging
+  interact(element).draggable({
+    modifiers: [
+      interact.modifiers.snap({
+        targets: [
+          interact.snappers.grid({
+            x: CELL_SIZE,
+            y: CELL_SIZE
+          })
+        ],
+        range: CELL_SIZE,
+        relativePoints: [{ x: 0, y: 0 }]
+      })
+    ],
+    listeners: {
+      start: (event) => {
+        element.style.cursor = 'grabbing';
+        element.style.zIndex = '100';
+      },
+      move: (event) => {
+        node.x += event.dx;
+        node.y += event.dy;
+        
+        // Ensure the node stays within bounds
+        const maxX = (GRID_WIDTH - node.width) * CELL_SIZE;
+        const maxY = (GRID_HEIGHT - node.height) * CELL_SIZE;
+        node.x = Math.max(0, Math.min(node.x, maxX));
+        node.y = Math.max(0, Math.min(node.y, maxY));
+        
+        element.style.left = Math.round(node.x / CELL_SIZE) * CELL_SIZE + 'px';
+        element.style.top = Math.round(node.y / CELL_SIZE) * CELL_SIZE + 'px';
+      },
+      end: (event) => {
+        element.style.cursor = 'grab';
+        element.style.zIndex = '10';
+        if (selectedNode === node) {
+          ins.x.value = Math.round(node.x / CELL_SIZE);
+          ins.y.value = Math.round(node.y / CELL_SIZE);
+        }
+        renderMCML();
+      }
+    }
+  });
+
+  // Resizing for specific elements
+  if (node.type === 'rect' || node.type === 'textbox') {
+    interact(element).resizable({
+      edges: {
+        bottom: node.type === 'rect',
+        right: true
+      },
+      modifiers: [
+        interact.modifiers.snap({
+          targets: [
+            interact.snappers.grid({
+              x: CELL_SIZE,
+              y: CELL_SIZE
+            })
+          ],
+          range: CELL_SIZE
+        })
+      ],
+      listeners: {
+        start: (event) => {
+          event.stopPropagation();
+        },
+        move: (event) => {
+          const newWidth = Math.max(1, Math.round(event.rect.width / CELL_SIZE));
+          const newHeight = node.type === 'rect' ? Math.max(1, Math.round(event.rect.height / CELL_SIZE)) : 1;
+          
+          // Check bounds
+          const maxWidth = GRID_WIDTH - Math.round(node.x / CELL_SIZE);
+          const maxHeight = GRID_HEIGHT - Math.round(node.y / CELL_SIZE);
+          
+          if (newWidth <= maxWidth && newHeight <= maxHeight) {
+            node.width = newWidth;
+            if (node.type === 'rect') {
+              node.height = newHeight;
+            }
+            updateNodeVisual(node);
+            
+            // Update position to maintain top-left anchor
+            node.x = Math.round(event.rect.left / CELL_SIZE) * CELL_SIZE;
+            node.y = Math.round(event.rect.top / CELL_SIZE) * CELL_SIZE;
+            element.style.left = node.x + 'px';
+            element.style.top = node.y + 'px';
+          }
+        },
+        end: (event) => {
+          if (selectedNode === node) {
+            updateInspector(node);
+          }
+          renderMCML();
+        }
+      }
+    });
+  }
+}
+
+// Update node visual representation
+function updateNodeVisual(node) {
+  const element = node.el;
+  
+  // Set size based on type
+  if (node.type === 'rect') {
+    element.style.width = (node.width * CELL_SIZE) + 'px';
+    element.style.height = (node.height * CELL_SIZE) + 'px';
+    element.textContent = '■';
+    element.style.justifyContent = 'center';
+    element.style.alignItems = 'center';
+  } else if (node.type === 'textbox') {
+    element.style.width = (node.width * CELL_SIZE) + 'px';
+    element.textContent = '_'.repeat(node.width);
+    element.style.justifyContent = 'flex-start';
+    element.style.paddingLeft = '4px';
+  } else if (node.type === 'button') {
+    element.textContent = node.text || 'button';
+    element.style.width = 'auto';
+    element.style.padding = '2px 6px';
+  } else if (node.type === 'text') {
+    element.textContent = node.text || 'text';
+    element.style.width = 'auto';
+    element.style.padding = '2px 4px';
+  } else if (node.type === 'newLine') {
+    element.textContent = '⏎';
+    element.style.width = 'auto';
+  }
+}
+
+// Initialize the application
+function init() {
+  // Set up the grid
+  initGrid();
+  
+  // Populate color selectors with previews
+  populateColorSelect(ins.textColor);
+  populateColorSelect(ins.bgColor);
+  populateColorSelect(bodyTextColor);
+  populateColorSelect(bodyBgColor);
+  
+  // Set up drag and drop for palette items
+  paletteList.querySelectorAll('.palette-item').forEach(item => {
+    item.draggable = true;
+    item.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/mcml-type', item.dataset.type);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+  });
+  
+  // Set up canvas drop zone
+  canvas.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  
+  canvas.addEventListener('drop', e => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData('text/mcml-type');
+    if (!type) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    let x = Math.round((e.clientX - rect.left) / CELL_SIZE) * CELL_SIZE;
+    let y = Math.round((e.clientY - rect.top) / CELL_SIZE) * CELL_SIZE;
+    
+    // Ensure coordinates are within bounds
+    x = Math.max(0, Math.min(x, (GRID_WIDTH - 1) * CELL_SIZE));
+    y = Math.max(0, Math.min(y, (GRID_HEIGHT - 1) * CELL_SIZE));
+    
+    createNode(type, x, y);
+    renderMCML();
+  });
+  
+  // Set up event listeners
+  document.getElementById('applyBtn').addEventListener('click', applyChanges);
+  document.getElementById('deleteBtn').addEventListener('click', deleteNode);
+  document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+  document.getElementById('exportBtn').addEventListener('click', exportMCML);
+  
+  // Dimension inputs
+  ins.width.addEventListener('input', updateNodeDimensions);
+  ins.height.addEventListener('input', updateNodeDimensions);
+  
+  // Web/Page inputs
+  ins.web.addEventListener('input', updateNodeNavigation);
+  ins.page.addEventListener('input', updateNodeNavigation);
+  
+  // Body styling
+  pageTitle.addEventListener('input', renderMCML);
+  pageDesc.addEventListener('input', renderMCML);
+  bodyTextColor.addEventListener('change', () => {
+    document.body.style.color = bodyTextColor.value;
+    renderMCML();
+  });
+  bodyBgColor.addEventListener('change', () => {
+    document.body.style.backgroundColor = bodyBgColor.value;
+    renderMCML();
+  });
+  
+  // Deselect node when clicking on canvas
+  canvas.addEventListener('pointerdown', e => {
+    if (e.target === canvas || e.target === canvasGrid) {
+      deselectNode();
+    }
+  });
+  
+  // Initial render
+  renderMCML();
+}
+
+// Update node navigation properties
+function updateNodeNavigation() {
+  if (!selectedNode) return;
+  
+  if (selectedNode.type === 'button' || selectedNode.type === 'textbox') {
+    selectedNode.web = ins.web.value;
+    selectedNode.page = ins.page.value;
+    renderMCML();
+  }
+}
+
+// Update node dimensions from inspector
+function updateNodeDimensions() {
+  if (!selectedNode) return;
+  
+  if (selectedNode.type === 'rect' || selectedNode.type === 'textbox') {
+    const newWidth = Math.max(1, parseInt(ins.width.value) || 1);
+    const newHeight = selectedNode.type === 'rect' ? Math.max(1, parseInt(ins.height.value) || 1) : 1;
+    
+    // Check bounds
+    const maxWidth = GRID_WIDTH - Math.round(selectedNode.x / CELL_SIZE);
+    const maxHeight = GRID_HEIGHT - Math.round(selectedNode.y / CELL_SIZE);
+    
+    if (newWidth <= maxWidth && newHeight <= maxHeight) {
+      selectedNode.width = newWidth;
+      if (selectedNode.type === 'rect') {
+        selectedNode.height = newHeight;
+      }
+      updateNodeVisual(selectedNode);
+      renderMCML();
+    }
+  }
+}
+
+// Create a new node on the canvas
+function createNode(type, x, y) {
+  const id = `el${++uid}`;
+  const el = document.createElement('div');
+  el.className = 'mcml-node';
+  el.dataset.type = type;
+  el.dataset.uid = uid;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  
+  // Initialize node properties
+  const node = {
+    id,
+    type,
+    x,
+    y,
+    width: 1,
+    height: 1,
+    text: (type === 'text' || type === 'button') ? type : '',
+    web: '',
+    page: '',
+    textColor: '',
+    bgColor: '',
+    el
+  };
+  
+  canvas.appendChild(el);
+  nodes.push(node);
+  
+  // Set initial visual representation
+  updateNodeVisual(node);
+  
+  // Set up interactions (drag + resize)
+  setupInteractions(el, node);
+  
+  // Set up event listeners for the node
+  el.addEventListener('pointerdown', ev => {
+    ev.stopPropagation();
+    selectNode(node);
+  });
+  
+  el.addEventListener('dblclick', () => {
+    selectNode(node);
+    ins.text.value = node.text;
+  });
+  
+  return node;
+}
+
+// Update inspector with node data
+function updateInspector(node) {
+  ins.id.value = node.id;
+  ins.x.value = Math.round(node.x / CELL_SIZE);
+  ins.y.value = Math.round(node.y / CELL_SIZE);
+  
+  // Show/hide dimensions based on node type
+  if (node.type === 'rect' || node.type === 'textbox') {
+    dimensionsContainer.style.display = 'flex';
+    ins.width.value = node.width;
+    if (node.type === 'rect') {
+      ins.height.value = node.height;
+      document.querySelector('label[for="ins-height"]').parentElement.style.display = 'block';
+    } else {
+      document.querySelector('label[for="ins-height"]').parentElement.style.display = 'none';
+    }
+  } else {
+    dimensionsContainer.style.display = 'none';
+  }
+  
+  // Show/hide web fields based on node type
+  if (node.type === 'button' || node.type === 'textbox') {
+    webFieldsContainer.style.display = 'block';
+    ins.web.value = node.web || '';
+    ins.page.value = node.page || '';
+  } else {
+    webFieldsContainer.style.display = 'none';
+  }
+  
+  ins.text.value = node.text;
+  ins.textColor.value = node.textColor || '';
+  ins.bgColor.value = node.bgColor || '';
+  ins.info.textContent = `Selected: ${node.type} (ID: ${node.id}) at ${ins.x.value},${ins.y.value}`;
+}
+
+// Select a node
+function selectNode(node) {
+  deselectNode();
+  selectedNode = node;
+  node.el.classList.add('selected');
+  updateInspector(node);
+}
+
+// Deselect the current node
+function deselectNode() {
+  if (selectedNode) {
+    selectedNode.el.classList.remove('selected');
+    selectedNode = null;
+    ins.info.textContent = 'Select an element on the canvas';
+    dimensionsContainer.style.display = 'none';
+    webFieldsContainer.style.display = 'none';
+  }
+}
+
+// Apply changes from the inspector
+function applyChanges() {
+  if (!selectedNode) {
+    alert('Select an element first');
+    return;
+  }
+  
+  const tcol = ins.textColor.value;
+  const bcol = ins.bgColor.value;
+  
+  if (tcol && !COLORS.includes(tcol)) {
+    alert('Text color must be a CC:Tweaked color');
+    return;
+  }
+  
+  if (bcol && !COLORS.includes(bcol)) {
+    alert('Background color must be a CC:Tweaked color');
+    return;
+  }
+  
+  // Update node properties
+  selectedNode.id = ins.id.value || selectedNode.id;
+  selectedNode.x = (Number(ins.x.value) || Math.round(selectedNode.x / CELL_SIZE)) * CELL_SIZE;
+  selectedNode.y = (Number(ins.y.value) || Math.round(selectedNode.y / CELL_SIZE)) * CELL_SIZE;
+  
+  // Update dimensions if applicable
+  if (selectedNode.type === 'rect' || selectedNode.type === 'textbox') {
+    const newWidth = Math.max(1, parseInt(ins.width.value) || 1);
+    const newHeight = selectedNode.type === 'rect' ? Math.max(1, parseInt(ins.height.value) || 1) : 1;
+    
+    // Check bounds
+    const maxWidth = GRID_WIDTH - Math.round(selectedNode.x / CELL_SIZE);
+    const maxHeight = GRID_HEIGHT - Math.round(selectedNode.y / CELL_SIZE);
+    
+    if (newWidth <= maxWidth && newHeight <= maxHeight) {
+      selectedNode.width = newWidth;
+      if (selectedNode.type === 'rect') {
+        selectedNode.height = newHeight;
+      }
+    }
+  }
+  
+  // Update navigation if applicable
+  if (selectedNode.type === 'button' || selectedNode.type === 'textbox') {
+    selectedNode.web = ins.web.value;
+    selectedNode.page = ins.page.value;
+  }
+  
+  selectedNode.text = ins.text.value;
+  selectedNode.textColor = tcol;
+  selectedNode.bgColor = bcol;
+  
+  // Update visual representation
+  selectedNode.el.style.left = selectedNode.x + 'px';
+  selectedNode.el.style.top = selectedNode.y + 'px';
+  updateNodeVisual(selectedNode);
+  
+  renderMCML();
+}
+
+// Delete the selected node
+function deleteNode() {
+  if (!selectedNode) return;
+  
+  // Remove interact.js interactions
+  interact(selectedNode.el).unset();
+  
+  selectedNode.el.remove();
+  nodes = nodes.filter(n => n !== selectedNode);
+  selectedNode = null;
+  renderMCML();
+}
+
+// Clear the entire canvas
+function clearCanvas() {
+  if (nodes.length === 0 || confirm('Are you sure you want to clear the canvas?')) {
+    nodes.forEach(n => {
+      // Remove interact.js interactions
+      interact(n.el).unset();
+      n.el.remove();
+    });
+    nodes = [];
+    uid = 0;
+    selectedNode = null;
+    renderMCML();
+  }
+}
+
+// Export MCML as a file
+function exportMCML() {
+  const text = out.textContent;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'layout.mcml';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Render the MCML output
+function renderMCML() {
+  const headStyles = {};
+  const bodyLines = [];
+  
+  // Process each node
+  nodes.forEach(n => {
+    // Add styles if needed
+    if (n.id && (n.textColor || n.bgColor)) {
+      headStyles[n.id] = `<style for="${n.id}">` +
+        (n.textColor ? `textColor:${n.textColor};` : '') +
+        (n.bgColor ? `bgColor:${n.bgColor};` : '') +
+        `</style>`;
+    }
+    
+    // Convert coordinates to grid units
+    const mcmlX = Math.round(n.x / CELL_SIZE);
+    const mcmlY = Math.round(n.y / CELL_SIZE);
+    
+    // Generate MCML for each node type
+    if (n.type === 'text') {
+      bodyLines.push(`<text id="${n.id}" x="${mcmlX}" y="${mcmlY}">${escape(n.text || '')}</text>`);
+    } else if (n.type === 'button') {
+      let buttonAttrs = `id="${n.id}" x="${mcmlX}" y="${mcmlY}"`;
+      if (n.web) buttonAttrs += ` web="${escape(n.web)}"`;
+      if (n.page) buttonAttrs += ` page="${escape(n.page)}"`;
+      bodyLines.push(`<button ${buttonAttrs}>${escape(n.text || '')}</button>`);
+    } else if (n.type === 'rect') {
+      bodyLines.push(`<rect id="${n.id}" x="${mcmlX}" y="${mcmlY}" width="${n.width}" height="${n.height}" />`);
+    } else if (n.type === 'textbox') {
+      let textboxAttrs = `id="${n.id}" x="${mcmlX}" y="${mcmlY}" width="${n.width}"`;
+      if (n.web) textboxAttrs += ` web="${escape(n.web)}"`;
+      if (n.page) textboxAttrs += ` page="${escape(n.page)}"`;
+      bodyLines.push(`<textbox ${textboxAttrs} />`);
+    } else if (n.type === 'newLine') {
+      bodyLines.push(`<newLine />`);
+    }
+  });
+  
+  // Build the head section
+  const titleText = pageTitle.value || 'Untitled';
+  const descText = pageDesc.value || '';
+  const bodyStyle = [];
+  if (bodyTextColor.value) bodyStyle.push(`textColor:${bodyTextColor.value}`);
+  if (bodyBgColor.value) bodyStyle.push(`bgColor:${bodyBgColor.value}`);
+  const bodyStyleAttr = bodyStyle.length > 0 ? ` ${bodyStyle.join(';')};` : '';
+  
+  const head = [
+    '<head>',
+    `  <title>${escape(titleText)}</title>`,
+    `  <description>${escape(descText)}</description>`
+  ];
+  
+  // Add styles to head
+  Object.values(headStyles).forEach(s => head.push('  ' + s));
+  head.push('</head>');
+  
+  // Build the complete MCML
+  const lines = [
+    ...head,
+    '',
+    `<body id="body"${bodyStyleAttr}>`,
+    ...bodyLines,
+    '',
+    '</body>'
+  ];
+  
+  out.textContent = lines.join('\n');
+}
+
+// Escape special characters for XML
+function escape(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+// Initialize the application when the DOM is loaded
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
